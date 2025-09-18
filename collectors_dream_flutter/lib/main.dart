@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'login.dart';
 
 void main() {
   runApp(CollectorsDreamApp());
@@ -40,7 +41,10 @@ class CollectorsDreamApp extends StatelessWidget {
           ),
         ),
       ),
-      home: DataTableScreen(),
+      home: AuthenticationScreen(),
+      routes: {
+        '/home': (context) => DataTableScreen(),
+      },
     );
   }
 }
@@ -151,20 +155,25 @@ class _DataTableScreenState extends State<DataTableScreen> {
       isLoading = true;
     });
 
-    // TODO: Replace with actual API calls
-    // final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/collection'));
-    // final categoriesResponse = await http.get(Uri.parse('http://127.0.0.1:8000/api/categories'));
-    
-    // Mock delay to simulate API call
-    await Future.delayed(Duration(milliseconds: 500));
-    
-    setState(() {
-      tableData = List<Map<String, dynamic>>.from(mockData);
-      categories = Map<String, dynamic>.from(mockCategories);
-      filteredData = List<Map<String, dynamic>>.from(tableData);
-      _updateColumns();
-      isLoading = false;
-    });
+    try {
+      // TODO: Replace with actual API calls
+      // final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/collection'));
+      // final categoriesResponse = await http.get(Uri.parse('http://127.0.0.1:8000/api/categories'));
+      
+      // Mock delay to simulate API call
+      await Future.delayed(Duration(milliseconds: 500));
+      
+      setState(() {
+        tableData = List<Map<String, dynamic>>.from(mockData);
+        categories = Map<String, dynamic>.from(mockCategories);
+        filteredData = List<Map<String, dynamic>>.from(tableData);
+        _updateColumns();
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   void _updateColumns() {
@@ -283,6 +292,14 @@ class _DataTableScreenState extends State<DataTableScreen> {
       appBar: AppBar(
         title: Text('Collector\'s Dream - Search Entries'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () {
+              Navigator.pushReplacementNamed(context, '/');
+            },
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -292,86 +309,62 @@ class _DataTableScreenState extends State<DataTableScreen> {
             colors: [Color(0xFFf1f5f9), Color(0xFFe2e8f0)],
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Card(
-            elevation: 8,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
+        child: RefreshIndicator(
+          onRefresh: loadData,
+          child: SingleChildScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+              child: Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Search and Filter Controls
-                  Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Select Category:', 
-                              style: TextStyle(fontWeight: FontWeight.w500)),
-                            SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              value: selectedCategory.isEmpty ? null : selectedCategory,
-                              decoration: InputDecoration(
-                                hintText: 'Choose a category...',
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                              items: [
-                                DropdownMenuItem<String>(
-                                  value: null,
-                                  child: Text('All Categories'),
-                                ),
-                                ...categories.entries.map((entry) => 
-                                  DropdownMenuItem<String>(
-                                    value: entry.key,
-                                    child: Text(entry.value['name']),
-                                  ),
-                                ),
-                              ],
-                              onChanged: filterByCategory,
-                            ),
-                          ],
+                      Text('Select Category:', 
+                        style: TextStyle(fontWeight: FontWeight.w500)),
+                      SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: selectedCategory.isEmpty ? null : selectedCategory,
+                        decoration: InputDecoration(
+                          hintText: 'Choose a category...',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('All Categories'),
+                          ),
+                          ...categories.entries.map((entry) => 
+                            DropdownMenuItem<String>(
+                              value: entry.key,
+                              child: Text(entry.value['name']),
+                            ),
+                          ),
+                        ],
+                        onChanged: filterByCategory,
                       ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Search:', 
-                              style: TextStyle(fontWeight: FontWeight.w500)),
-                            SizedBox(height: 8),
-                            TextField(
-                              decoration: InputDecoration(
-                                hintText: 'Search records...',
-                                prefixIcon: Icon(Icons.search),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                              onChanged: searchData,
-                            ),
-                          ],
+                      SizedBox(height: 16),
+                      Text('Search:', 
+                        style: TextStyle(fontWeight: FontWeight.w500)),
+                      SizedBox(height: 8),
+                      TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Search records...',
+                          prefixIcon: Icon(Icons.search),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        flex: 1,
-                        child: Column(
-                          children: [
-                            SizedBox(height: 24),
-                            ElevatedButton.icon(
-                              onPressed: loadData,
-                              icon: Icon(Icons.refresh),
-                              label: Text('Refresh'),
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              ),
-                            ),
-                          ],
-                        ),
+                        onChanged: searchData,
                       ),
                     ],
                   ),
@@ -396,7 +389,8 @@ class _DataTableScreenState extends State<DataTableScreen> {
                   SizedBox(height: 16),
                   
                   // Data Table
-                  Expanded(
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.6,
                     child: isLoading
                         ? Center(child: CircularProgressIndicator())
                         : filteredData.isEmpty
@@ -485,10 +479,10 @@ class _DataTableScreenState extends State<DataTableScreen> {
                                   // Pagination Controls
                                   if (totalPages > 1) ...[
                                     SizedBox(height: 16),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    Column(
                                       children: [
                                         Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             Text('Items per page: '),
                                             DropdownButton<int>(
@@ -508,7 +502,9 @@ class _DataTableScreenState extends State<DataTableScreen> {
                                             ),
                                           ],
                                         ),
+                                        SizedBox(height: 8),
                                         Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             IconButton(
                                               onPressed: currentPage > 0 
@@ -537,6 +533,9 @@ class _DataTableScreenState extends State<DataTableScreen> {
           ),
         ),
       ),
+    ),
+  ),
+  ),
     );
   }
 }
